@@ -131,6 +131,58 @@ where
         })
     }
 
+    /// Synchronously finds certificate path, returning [`Report`].
+    ///
+    /// Won't resolve AIAs.
+    pub fn find_sync<I: Into<Arc<crate::Certificate>>>(
+        &mut self,
+        target: I,
+    ) -> X509PathFinderResult<Report> {
+        let target: Arc<crate::Certificate> = target.into();
+        self.edges.start(target.into());
+        let start = Instant::now();
+        let mut failures = vec![];
+
+        while let Some(edge) = self.edges.next() {
+            if edge == Edge::End {
+                let (path, origin) = self.edges.path(&edge);
+                match self
+                    .validator
+                    .validate(path.iter().map(|c| c.as_ref()).collect())?
+                {
+                    CertificatePathValidation::Found => {
+                        return Ok(Report {
+                            found: Some(Found { path, origin }),
+                            duration: Instant::now() - start,
+                            failures,
+                        });
+                    }
+                    CertificatePathValidation::NotFound(reason) => {
+                        failures.push(ValidationFailure {
+                            path,
+                            origin,
+                            reason,
+                        });
+                    }
+                }
+            }
+
+            if self.edges.visited(&edge) {
+                continue;
+            }
+
+            self.edges.visit(edge.clone());
+
+            self.next_sync(edge)?;
+        }
+
+        Ok(Report {
+            found: None,
+            duration: Instant::now() - start,
+            failures,
+        })
+    }
+
     async fn next(&mut self, edge: Edge) -> X509PathFinderResult<()> {
         match &edge {
             // edge is leaf certificate, search for issuer candidates
@@ -164,6 +216,45 @@ where
                 let url_edges = self.next_url(edge_certificate.as_ref(), url).await;
                 self.edges.extend(edge, url_edges);
                 Ok(())
+            }
+            // edge is end, stop search
+            Edge::End => Ok(()),
+        }
+    }
+
+    fn next_sync(&mut self, edge: Edge) -> X509PathFinderResult<()> {
+        match &edge {
+            // edge is leaf certificate, search for issuer candidates
+            Edge::Certificate(edge_certificate) => {
+                let mut store_candidates = self.next_store(edge_certificate.clone());
+
+                // queue issuer candidates from store
+                if !store_candidates.is_empty() {
+                    #[cfg(feature = "resolve")]
+                    // queue any aia edges
+                    store_candidates.extend(
+                        edge_certificate
+                            .aia()
+                            .iter()
+                            .map(|u| Edge::Url(u.clone().into(), edge_certificate.clone())),
+                    );
+
+                    // reverse store edges so explored by store priority
+                    store_candidates.reverse();
+                    self.edges.extend(edge.clone(), store_candidates);
+                    Ok(())
+                } else {
+                    self.edges
+                        .extend(edge.clone(), self.next_aia(edge_certificate.clone()));
+                    Ok(())
+                }
+            }
+            #[cfg(feature = "resolve")]
+            // edge is url, cannot perform synchronously
+            Edge::Url(_, _) => {
+                return Err(X509PathFinderError::Error(
+                    "cannot resolve URLs, use `find` istead".into(),
+                ));
             }
             // edge is end, stop search
             Edge::End => Ok(()),
