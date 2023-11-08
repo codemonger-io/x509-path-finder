@@ -2,6 +2,7 @@ use crate::api::PathValidatorError;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::result;
+#[cfg(feature = "resolve")]
 use x509_client::X509ClientError;
 
 pub type X509PathFinderResult<T> = result::Result<T, X509PathFinderError>;
@@ -13,6 +14,7 @@ pub enum X509PathFinderError {
     Error(String),
     /// Errors when parsing certificates
     DerError(der::Error),
+    #[cfg(feature = "resolve")]
     /// Errors from `X509Client`, when downloading certificates
     X509ClientError(X509ClientError),
     /// [`PathValidator`](crate::api::PathValidator) errors
@@ -28,6 +30,7 @@ impl Display for X509PathFinderError {
             X509PathFinderError::DerError(e) => {
                 write!(f, "x509-path-finder -> der error: {}", e)
             }
+            #[cfg(feature = "resolve")]
             X509PathFinderError::X509ClientError(e) => {
                 write!(f, "x509-path-finder -> {}", e)
             }
@@ -46,6 +49,7 @@ impl From<der::Error> for X509PathFinderError {
     }
 }
 
+#[cfg(feature = "resolve")]
 impl From<X509ClientError> for X509PathFinderError {
     fn from(e: X509ClientError) -> Self {
         Self::X509ClientError(e)

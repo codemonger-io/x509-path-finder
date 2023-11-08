@@ -6,6 +6,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct CertificateStore {
     certificates: BTreeSet<Arc<Certificate>>,
+    #[allow(dead_code)]
     serial: usize,
 }
 
@@ -29,6 +30,7 @@ impl CertificateStore {
             .collect()
     }
 
+    #[cfg(any(test, feature = "resolve"))]
     pub fn insert(&mut self, mut certificate: Certificate) -> Option<Arc<Certificate>> {
         if certificate.issued(&certificate) {
             return None;

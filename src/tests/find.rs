@@ -1,12 +1,17 @@
 use crate::report::CertificateOrigin;
 use crate::tests::test_validator::TestPathValidator;
-use crate::{TestAIA, X509PathFinder, X509PathFinderConfiguration};
+#[cfg(feature = "resolve")]
+use crate::TestAIA;
+use crate::{X509PathFinder, X509PathFinderConfiguration};
+#[cfg(feature = "resolve")]
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(feature = "resolve")]
 use url::Url;
 use x509_path_finder_material::generate::CertificatePathGenerator;
 
+#[cfg(feature = "resolve")]
 #[tokio::test]
 async fn test_limit() {
     let mut certificates = CertificatePathGenerator::generate(3, "authority").unwrap();
@@ -72,6 +77,7 @@ async fn test_self_signed() {
 
     let mut search = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates: vec![],
@@ -101,6 +107,7 @@ async fn test_direct_path_no_aia() {
 
     let mut search = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates,
@@ -155,6 +162,7 @@ async fn test_cross_first_no_aia() {
 
     let report = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates: cached_certificates_cross_first,
@@ -200,6 +208,7 @@ async fn test_cross_last_no_aia() {
 
     let report = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates: cached_certificates_cross_last,
@@ -253,6 +262,7 @@ async fn test_cross_first_dead_end_no_aia() {
 
     let report = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates: cached_certificates_cross_first,
@@ -279,6 +289,7 @@ async fn test_cross_first_dead_end_no_aia() {
     );
 }
 
+#[cfg(feature = "resolve")]
 #[tokio::test]
 async fn test_direct_path_only_aia() {
     let mut certificates = CertificatePathGenerator::generate(8, "authority").unwrap();
@@ -336,6 +347,7 @@ async fn test_direct_path_only_aia() {
     );
 }
 
+#[cfg(feature = "resolve")]
 #[tokio::test]
 async fn test_direct_path_partial_aia() {
     let mut certificates = CertificatePathGenerator::generate(8, "authority")
@@ -457,6 +469,7 @@ async fn escape_path_loop() {
 
     let mut search = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator: validator.clone(),
         certificates: vec![a.clone().into(), b.clone().into()],
@@ -466,6 +479,7 @@ async fn escape_path_loop() {
 
     let mut search = X509PathFinder::new(X509PathFinderConfiguration {
         limit: Duration::default(),
+        #[cfg(feature = "resolve")]
         aia: None,
         validator,
         certificates: vec![z.into(), y.into(), a.into(), b.into()],

@@ -1,12 +1,15 @@
 use crate::report::CertificateOrigin;
+#[cfg(feature = "resolve")]
 use der::oid::db::rfc5280::{ID_AD_CA_ISSUERS, ID_PE_AUTHORITY_INFO_ACCESS};
 use der::{Decode, DecodeValue, Encode, Header, Length, Reader, Writer};
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+#[cfg(feature = "resolve")]
 use url::Url;
 use x509_cert::ext::pkix::name::GeneralName;
+#[cfg(feature = "resolve")]
 use x509_cert::ext::pkix::AuthorityInfoAccessSyntax;
 
 #[derive(Clone, Debug)]
@@ -14,6 +17,7 @@ pub struct Certificate {
     inner: Arc<crate::Certificate>,
     issuer: String,
     subject: String,
+    #[cfg(feature = "resolve")]
     aia: Vec<Url>,
     ord: usize,
     hash: Vec<u8>,
@@ -24,10 +28,12 @@ impl Certificate {
     pub fn issued(&self, subject: &Self) -> bool {
         self.subject == subject.issuer
     }
+    #[cfg(feature = "resolve")]
     pub fn aia(&self) -> &[Url] {
         self.aia.as_slice()
     }
 
+    #[cfg(feature = "resolve")]
     fn parse_aia(certificate: &crate::Certificate) -> Vec<Url> {
         match &certificate.tbs_certificate.extensions {
             None => vec![],
@@ -133,6 +139,7 @@ impl From<Arc<crate::Certificate>> for Certificate {
         Self {
             issuer: inner.tbs_certificate.issuer.to_string(),
             subject: inner.tbs_certificate.subject.to_string(),
+            #[cfg(feature = "resolve")]
             aia: Self::parse_aia(&inner),
             inner,
             ord: 0,

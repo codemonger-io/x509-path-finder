@@ -1,7 +1,9 @@
 use crate::api::{CertificatePathValidation, PathValidator};
 use crate::certificate::Certificate;
 use crate::edge::{Edge, Edges};
-use crate::report::{CertificateOrigin, Found, Report, ValidationFailure};
+#[cfg(feature = "resolve")]
+use crate::report::CertificateOrigin;
+use crate::report::{Found, Report, ValidationFailure};
 use crate::store::CertificateStore;
 use crate::{X509PathFinderError, X509PathFinderResult};
 #[cfg(test)]
@@ -9,9 +11,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use std::vec;
+#[cfg(any(test, feature = "resolve"))]
 use url::Url;
+#[cfg(feature = "resolve")]
 use x509_client::X509ClientResult;
-#[cfg(not(test))]
+#[cfg(all(not(test), feature = "resolve"))]
 use {
     x509_client::provided::default::DefaultX509Iterator,
     x509_client::{X509Client, X509ClientConfiguration},
@@ -26,9 +30,9 @@ where
     /// limit runtime of path search. Actual limit will be N * HTTP timeout. See `Reqwest` docs for setting HTTP connection timeout.
     pub limit: Duration,
     /// Optional client to find additional certificates by parsing URLs from [Authority Information Access](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.2.1) extensions
-    #[cfg(not(test))]
+    #[cfg(all(not(test), feature = "resolve"))]
     pub aia: Option<X509ClientConfiguration>,
-    #[cfg(test)]
+    #[cfg(all(test, feature = "resolve"))]
     pub aia: Option<TestAIA>,
     /// [`PathValidator`](crate::api::PathValidator) implementation
     pub validator: V,
@@ -42,9 +46,9 @@ where
     V: PathValidator,
 {
     limit: Duration,
-    #[cfg(not(test))]
+    #[cfg(all(not(test), feature = "resolve"))]
     aia: Option<X509Client<DefaultX509Iterator>>,
-    #[cfg(test)]
+    #[cfg(all(test, feature = "resolve"))]
     aia: Option<TestAIA>,
     validator: V,
     store: CertificateStore,
@@ -63,9 +67,9 @@ where
     {
         X509PathFinder {
             limit: config.limit,
-            #[cfg(not(test))]
+            #[cfg(all(not(test), feature = "resolve"))]
             aia: config.aia.map(X509Client::new),
-            #[cfg(test)]
+            #[cfg(all(test, feature = "resolve"))]
             aia: config.aia,
             validator: config.validator,
             store: CertificateStore::from_iter(config.certificates.into_iter().map(|c| c.into())),
@@ -135,6 +139,7 @@ where
 
                 // queue issuer candidates from store or try aia
                 if !store_candidates.is_empty() {
+                    #[cfg(feature = "resolve")]
                     // queue any aia edges
                     store_candidates.extend(
                         edge_certificate
@@ -153,6 +158,7 @@ where
                     Ok(())
                 }
             }
+            #[cfg(feature = "resolve")]
             // edge is url, download certificates, queue issuer candidates
             Edge::Url(url, edge_certificate) => {
                 let url_edges = self.next_url(edge_certificate.as_ref(), url).await;
@@ -174,6 +180,7 @@ where
     }
 
     // download certificates, insert into store, return non self-signed issuer candidates
+    #[cfg(feature = "resolve")]
     async fn next_url(&mut self, parent_certificate: &Certificate, url: &Url) -> Vec<Edge> {
         let candidates = self
             .get_all(url)
@@ -202,6 +209,7 @@ where
     }
 
     // if aia enabled, return aia edges
+    #[cfg(feature = "resolve")]
     fn next_aia(&self, parent_certificate: Arc<Certificate>) -> Vec<Edge> {
         // aia disabled, return end edge
         if self.aia.is_none() {
@@ -222,8 +230,12 @@ where
             .rev()
             .collect()
     }
+    #[cfg(not(feature = "resolve"))]
+    fn next_aia(&self, _parent_certificate: Arc<Certificate>) -> Vec<Edge> {
+        vec![Edge::End]
+    }
 
-    #[cfg(not(test))]
+    #[cfg(all(not(test), feature = "resolve"))]
     async fn get_all(&self, url: &Url) -> X509ClientResult<Vec<Certificate>> {
         if let Some(client) = &self.aia {
             Ok(client
@@ -241,7 +253,7 @@ where
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "resolve"))]
     async fn get_all(&self, url: &Url) -> X509ClientResult<Vec<Certificate>> {
         if let Some(aia) = &self.aia {
             if let Some(duration) = &aia.sleep {

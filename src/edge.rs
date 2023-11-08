@@ -4,11 +4,13 @@ use std::sync::Arc;
 
 use crate::certificate::Certificate;
 use crate::report::CertificateOrigin;
+#[cfg(feature = "resolve")]
 use url::Url;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum Edge {
     Certificate(Arc<Certificate>),
+    #[cfg(feature = "resolve")]
     Url(Arc<Url>, Arc<Certificate>),
     End,
 }

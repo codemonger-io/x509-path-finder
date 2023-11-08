@@ -21,7 +21,8 @@ openssl = { version = "0.10.56", features = ["vendored"], optional = true }
 rustls-webpki = { version = "0.101.5", optional = true }
 x509-cert = { version = "0.2.4", features = ["pem"] }
 der = { version = "0.7.6", features = ["alloc", "derive", "flagset", "oid"] }
-x509-client = { version = "2.0.1" }
+x509-client = { version = "2.0.1", optional = true }
+const-oid = { version = "0.9", features = ["db"] }
 
 [dev-dependencies]
 tokio = { version = "1.30.0", features = ["full"] }
@@ -31,6 +32,7 @@ x509-path-finder-material = { path = "./material" }
 [features]
 default = ["rustls-webpki"]
 openssl = ["dep:openssl", "x509-client/openssl"]
+resolve = ["x509-client"]
 
 [package.metadata.docs.rs]
 all-features = true
