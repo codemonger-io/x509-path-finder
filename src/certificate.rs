@@ -73,11 +73,11 @@ impl Certificate {
             }
             _ => (),
         };
-        // checks signature algorithms
+        // TODO: check signature algorithms
+        // retracted the previous check because it was too strict; it required
+        // both digest and public key algorithms to match while OpenSSL requires
+        // only public key algorithms to match.
         // https://github.com/openssl/openssl/blob/1c6a37975495dd633847ff0c07747fae272d5e4d/crypto/x509/v3_purp.c#L370
-        if self.inner.tbs_certificate.signature != subject.inner.signature_algorithm {
-            return false;
-        }
         true
     }
     #[cfg(feature = "resolve")]
