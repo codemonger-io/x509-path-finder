@@ -1,3 +1,7 @@
+use const_oid::db::rfc5280::{
+    ID_CE_AUTHORITY_KEY_IDENTIFIER,
+    ID_CE_SUBJECT_KEY_IDENTIFIER,
+};
 use crate::report::CertificateOrigin;
 #[cfg(feature = "resolve")]
 use der::oid::db::rfc5280::{ID_AD_CA_ISSUERS, ID_PE_AUTHORITY_INFO_ACCESS};
@@ -11,6 +15,7 @@ use url::Url;
 use x509_cert::ext::pkix::name::GeneralName;
 #[cfg(feature = "resolve")]
 use x509_cert::ext::pkix::AuthorityInfoAccessSyntax;
+use x509_cert::ext::pkix::{AuthorityKeyIdentifier, SubjectKeyIdentifier};
 
 #[derive(Clone, Debug)]
 pub struct Certificate {
@@ -26,7 +31,51 @@ pub struct Certificate {
 
 impl Certificate {
     pub fn issued(&self, subject: &Self) -> bool {
-        self.subject == subject.issuer
+        if self.subject != subject.issuer {
+            return false;
+        }
+        // checks authority and subject key IDs
+        // https://github.com/openssl/openssl/blob/1c6a37975495dd633847ff0c07747fae272d5e4d/crypto/x509/v3_purp.c#L1002
+        match (
+            self.inner.tbs_certificate.extensions.as_ref(),
+            subject.inner.tbs_certificate.extensions.as_ref(),
+        ) {
+            (Some(issuer_exts), Some(subject_exts)) => {
+                let skid = issuer_exts.iter()
+                    .find(|ext| ext.extn_id == ID_CE_SUBJECT_KEY_IDENTIFIER)
+                    .and_then(|skid| SubjectKeyIdentifier::from_der(skid.extn_value.as_bytes())
+                        .ok());
+                let akid = subject_exts.iter()
+                    .find(|ext| ext.extn_id == ID_CE_AUTHORITY_KEY_IDENTIFIER)
+                    .and_then(|akid| AuthorityKeyIdentifier::from_der(akid.extn_value.as_bytes())
+                        .ok());
+                if let (Some(skid), Some(akid)) = (skid, akid) {
+                    if akid.key_identifier.is_some_and(|id| id != skid.0) {
+                        return false;
+                    }
+                    if akid.authority_cert_serial_number
+                        .is_some_and(|n| n != self.inner.tbs_certificate.serial_number)
+                    {
+                        return false;
+                    }
+                    if let Some(gen_names) = akid.authority_cert_issuer {
+                        let name = gen_names.iter()
+                            .find_map(|name| match name {
+                                GeneralName::DirectoryName(name) => Some(name),
+                                _ => None,
+                            });
+                        if name.is_some_and(|name| name.to_string() != self.issuer) {
+                            return false;
+                        }
+                    }
+                }
+            },
+            _ => ()
+        };
+        // TODO: check signature algorithms
+        // https://github.com/openssl/openssl/blob/1c6a37975495dd633847ff0c07747fae272d5e4d/crypto/x509/v3_purp.c#L981
+        // https://github.com/openssl/openssl/blob/1c6a37975495dd633847ff0c07747fae272d5e4d/crypto/x509/v3_purp.c#L370
+        true
     }
     #[cfg(feature = "resolve")]
     pub fn aia(&self) -> &[Url] {
