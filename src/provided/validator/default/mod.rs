@@ -69,9 +69,7 @@ impl<'a> PathValidator for DefaultPathValidator<'a> {
         let time = if self.check_time {
             Some(
                 Time::try_from(SystemTime::now())
-                    .map_err(
-                        |e| DefaultPathValidatorError::Error(e.to_string()),
-                    )?,
+                    .map_err(|e| DefaultPathValidatorError::Error(e.to_string()))?,
             )
         } else {
             None

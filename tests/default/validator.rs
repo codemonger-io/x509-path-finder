@@ -12,7 +12,8 @@ fn test_validator() {
 
     let algorithms = &[&webpki::ECDSA_P256_SHA256];
 
-    let validator = DefaultPathValidator::new(algorithms, vec![root], KeyUsage::client_auth(), &[], true);
+    let validator =
+        DefaultPathValidator::new(algorithms, vec![root], KeyUsage::client_auth(), &[], true);
     let validate = validator.validate(certificates.iter().collect()).unwrap();
     assert_eq!(CertificatePathValidation::Found, validate);
 }
