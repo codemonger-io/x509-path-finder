@@ -66,11 +66,12 @@ x509_path_finder = { version = "*", features = ["openssl"] }
         // instantiate default validator        
         let root = TrustAnchor::try_from_cert_der(root.as_slice()).unwrap();  
         let algorithms = &[&webpki::ECDSA_P256_SHA256];
-        let validator = DefaultPathValidator::new(algorithms, vec![root], KeyUsage::client_auth(), &[]);
+        let validator = DefaultPathValidator::new(algorithms, vec![root], KeyUsage::client_auth(), &[], true);
 
         // instantiate the finder
         let mut search = X509PathFinder::new(X509PathFinderConfiguration {
             limit: Duration::default(),
+            #[cfg(feature = "resolve")]
             aia: None,
             validator,
             certificates: ic,
