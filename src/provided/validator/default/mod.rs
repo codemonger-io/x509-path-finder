@@ -14,6 +14,7 @@ pub struct DefaultPathValidator<'a> {
     roots: Vec<TrustAnchor<'a>>,
     usage: KeyUsage,
     crls: &'a [&'a dyn CertRevocationList],
+    check_time: bool,
 }
 
 impl<'a> DefaultPathValidator<'a> {
@@ -26,17 +27,20 @@ impl<'a> DefaultPathValidator<'a> {
     ///   of usage we're verifying the certificate for.
     /// * `crls` is the list of certificate revocation lists to check
     ///   the certificate against.
+    /// * `check_time` indicates whether certificate time is checked
     pub fn new(
         algorithms: &'a [&'a SignatureAlgorithm],
         roots: Vec<TrustAnchor<'a>>,
         usage: KeyUsage,
         crls: &'a [&'a dyn CertRevocationList],
+        check_time: bool,
     ) -> Self {
         Self {
             algorithms,
             roots,
             usage,
             crls,
+            check_time,
         }
     }
 }
@@ -62,6 +66,16 @@ impl<'a> PathValidator for DefaultPathValidator<'a> {
             der_path.push(certificate.to_der()?);
         }
 
+        let time = if self.check_time {
+            Some(
+                Time::try_from(SystemTime::now())
+                    .map_err(
+                        |e| DefaultPathValidatorError::Error(e.to_string()),
+                    )?,
+            )
+        } else {
+            None
+        };
         match ee.verify_for_usage(
             self.algorithms,
             self.roots.as_slice(),
@@ -70,8 +84,7 @@ impl<'a> PathValidator for DefaultPathValidator<'a> {
                 .map(Vec::as_slice)
                 .collect::<Vec<&[u8]>>()
                 .as_slice(),
-            Time::try_from(SystemTime::now())
-                .map_err(|e| DefaultPathValidatorError::Error(e.to_string()))?,
+            time,
             self.usage,
             self.crls,
         ) {
