@@ -251,11 +251,9 @@ where
             }
             #[cfg(feature = "resolve")]
             // edge is url, cannot perform synchronously
-            Edge::Url(_, _) => {
-                return Err(X509PathFinderError::Error(
-                    "cannot resolve URLs, use `find` istead".into(),
-                ));
-            }
+            Edge::Url(_, _) => Err(X509PathFinderError::Error(
+                "cannot resolve URLs, use `find` istead".into(),
+            )),
             // edge is end, stop search
             Edge::End => Ok(()),
         }
