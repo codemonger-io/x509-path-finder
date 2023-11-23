@@ -86,7 +86,9 @@ impl<'a> PathValidator for DefaultPathValidator<'a> {
             self.usage,
             self.crls,
         ) {
-            Ok(trust_anchor) => Ok(CertificatePathValidation::Found(trust_anchor.as_der().to_vec())),
+            Ok(trust_anchor) => Ok(CertificatePathValidation::Found(
+                trust_anchor.as_der().to_vec(),
+            )),
 
             Err(f) => Ok(CertificatePathValidation::NotFound(f.to_string())),
         }

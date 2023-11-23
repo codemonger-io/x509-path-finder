@@ -1,6 +1,6 @@
 use crate::api::{CertificatePathValidation, PathValidator};
 use crate::provided::validator::default::result::DefaultPathValidatorError;
-use x509_cert::{Certificate, der::Encode as _};
+use x509_cert::{der::Encode as _, Certificate};
 
 #[derive(Clone)]
 pub struct TestPathValidator {

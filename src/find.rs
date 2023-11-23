@@ -100,7 +100,11 @@ where
                 {
                     CertificatePathValidation::Found(trust_anchor) => {
                         return Ok(Report {
-                            found: Some(Found { path, origin, trust_anchor }),
+                            found: Some(Found {
+                                path,
+                                origin,
+                                trust_anchor,
+                            }),
                             duration: Instant::now() - start,
                             failures,
                         });
@@ -152,7 +156,11 @@ where
                 {
                     CertificatePathValidation::Found(trust_anchor) => {
                         return Ok(Report {
-                            found: Some(Found { path, origin, trust_anchor }),
+                            found: Some(Found {
+                                path,
+                                origin,
+                                trust_anchor,
+                            }),
                             duration: Instant::now() - start,
                             failures,
                         });

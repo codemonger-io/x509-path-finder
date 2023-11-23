@@ -67,7 +67,9 @@ impl PathValidator for OpenSSLPathValidator {
         )?;
 
         match verified {
-            VerifyResult::Success(Ok(trust_anchor)) => Ok(CertificatePathValidation::Found(trust_anchor)),
+            VerifyResult::Success(Ok(trust_anchor)) => {
+                Ok(CertificatePathValidation::Found(trust_anchor))
+            }
             VerifyResult::Success(Err(e)) => Ok(CertificatePathValidation::NotFound(e)),
 
             VerifyResult::Failure(f) => Ok(CertificatePathValidation::NotFound(
