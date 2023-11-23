@@ -5,6 +5,10 @@ on:
     branches:
       - master
       - v0.7-sync
+  pull-request:
+    branches:
+      - master
+      - v0.7-sync
 
 jobs:
 
