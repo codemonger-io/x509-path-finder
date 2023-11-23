@@ -98,9 +98,13 @@ where
                     .validator
                     .validate(path.iter().map(|c| c.as_ref()).collect())?
                 {
-                    CertificatePathValidation::Found => {
+                    CertificatePathValidation::Found(trust_anchor) => {
                         return Ok(Report {
-                            found: Some(Found { path, origin }),
+                            found: Some(Found {
+                                path,
+                                origin,
+                                trust_anchor,
+                            }),
                             duration: Instant::now() - start,
                             failures,
                         });
@@ -150,9 +154,13 @@ where
                     .validator
                     .validate(path.iter().map(|c| c.as_ref()).collect())?
                 {
-                    CertificatePathValidation::Found => {
+                    CertificatePathValidation::Found(trust_anchor) => {
                         return Ok(Report {
-                            found: Some(Found { path, origin }),
+                            found: Some(Found {
+                                path,
+                                origin,
+                                trust_anchor,
+                            }),
                             duration: Instant::now() - start,
                             failures,
                         });

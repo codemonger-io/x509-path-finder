@@ -45,14 +45,32 @@ impl PathValidator for OpenSSLPathValidator {
             openssl_path.as_ref(),
             |context| {
                 Ok(match context.verify_cert()? {
-                    true => VerifyResult::Success,
+                    true => {
+                        let trust_anchor = context
+                            .chain()
+                            .and_then(|chain| {
+                                println!("chain.len(): {}", chain.len());
+                                let last = chain.len() - 1;
+                                chain.get(last)
+                            })
+                            .ok_or("no trust anchor in chain".to_string())
+                            .and_then(|trust_anchor| {
+                                trust_anchor
+                                    .to_der()
+                                    .map_err(|e| format!("failed to serialize trust anchor: {}", e))
+                            });
+                        VerifyResult::Success(trust_anchor)
+                    }
                     false => VerifyResult::Failure(context.error()),
                 })
             },
         )?;
 
         match verified {
-            VerifyResult::Success => Ok(CertificatePathValidation::Found),
+            VerifyResult::Success(Ok(trust_anchor)) => {
+                Ok(CertificatePathValidation::Found(trust_anchor))
+            }
+            VerifyResult::Success(Err(e)) => Ok(CertificatePathValidation::NotFound(e)),
 
             VerifyResult::Failure(f) => Ok(CertificatePathValidation::NotFound(
                 f.error_string().to_string(),
@@ -64,6 +82,6 @@ impl PathValidator for OpenSSLPathValidator {
 impl PathValidatorError for OpenSSLPathValidatorError {}
 
 enum VerifyResult {
-    Success,
+    Success(Result<Vec<u8>, String>),
     Failure(X509VerifyResult),
 }

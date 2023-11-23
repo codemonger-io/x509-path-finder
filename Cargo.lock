@@ -785,8 +785,8 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.101.7-ext.0"
-source = "git+https://github.com/codemonger-io/webpki.git?tag=v0.101.7-ext.0#557fa010e6419f0f242e4c4f077852548e4f3a85"
+version = "0.101.7-ext.1"
+source = "git+https://github.com/codemonger-io/webpki.git?tag=v0.101.7-ext.1#2cc268f0e67e2e99f9a96687e38fbe0ea5bb8c72"
 dependencies = [
  "ring",
  "untrusted",
