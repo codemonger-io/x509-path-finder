@@ -1,6 +1,6 @@
 use crate::api::{CertificatePathValidation, PathValidator};
 use crate::provided::validator::default::result::DefaultPathValidatorError;
-use x509_cert::Certificate;
+use x509_cert::{Certificate, der::Encode as _};
 
 #[derive(Clone)]
 pub struct TestPathValidator {
@@ -29,7 +29,7 @@ impl PathValidator for TestPathValidator {
 
         for root in self.store.iter() {
             if root.tbs_certificate.subject == ic.tbs_certificate.issuer {
-                return Ok(CertificatePathValidation::Found);
+                return Ok(CertificatePathValidation::Found(root.to_der().unwrap()));
             }
         }
 

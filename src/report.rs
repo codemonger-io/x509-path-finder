@@ -40,6 +40,8 @@ pub struct Found {
     pub path: Vec<Arc<crate::Certificate>>,
     /// Certificate path origins
     pub origin: Vec<CertificateOrigin>,
+    /// DER representation of the trust anchor.
+    pub trust_anchor: Vec<u8>,
 }
 
 impl<'r> IntoIterator for &'r Found {

@@ -19,7 +19,9 @@ pub trait PathValidator {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CertificatePathValidation {
     /// Valid path found
-    Found,
+    ///
+    /// The parameter is a DER representation of the trust anchor.
+    Found(Vec<u8>),
     /// Valid path not found
     NotFound(String),
 }
