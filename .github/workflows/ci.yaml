@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - v0.7-sync
-  pull-request:
+  pull_request:
     branches:
       - master
       - v0.7-sync
